@@ -23,10 +23,10 @@
         android:hint="Description"/>
 
     <Button
-        android:id="@+id/sendDataBtn"
+        android:id="@+id/addDataBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Save"/>
+        android:text="Add"/>
 
     <Button
         android:id="@+id/loadNoteBtn"
@@ -35,25 +35,12 @@
         android:text="Load"/>
 
 
-    <Button
-        android:id="@+id/updateDescBtn"
+
+
+    <android.support.v4.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Update Description"/>
+        android:layout_height="wrap_content">
 
-
-    <Button
-        android:id="@+id/deleteDescBtn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Delete Description"/>
-
-
-    <Button
-        android:id="@+id/deleteNoteBtn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Delete Note"/>
 
 
 
@@ -63,6 +50,9 @@
         android:layout_height="wrap_content"
         android:textSize="20sp"
          />
+
+
+    </android.support.v4.widget.NestedScrollView>
 
 
 

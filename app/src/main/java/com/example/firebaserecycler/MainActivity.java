@@ -23,6 +23,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
@@ -30,6 +31,8 @@ import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
 
 import java.util.HashMap;
@@ -46,17 +49,16 @@ public class MainActivity extends AppCompatActivity {
 
     private EditText editTextTitle;
     private EditText editTextDescription;
-     Button sendDataButton;
+     Button addDataBtn;
      Button loadNoteBtn;
-     Button updateDescBtn;
-     Button deleteDescBtn;
-     Button deleteNoteBtn;
+
      private TextView textViewData;
 
     private FirebaseFirestore db= FirebaseFirestore.getInstance();
     private DocumentReference noteRef=db.collection("Notebook").document("My First Note");
     //or we can call db.document("Notebook/My First Note");
 
+    private CollectionReference notebookRef=db.collection("Notebook");
 
     private ListenerRegistration  noteListener;
 
@@ -64,36 +66,44 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        noteListener=noteRef.addSnapshotListener(new EventListener<DocumentSnapshot>() {
+
+        notebookRef.addSnapshotListener(this, new EventListener<QuerySnapshot>() {
             @Override
-            public void onEvent(@Nullable DocumentSnapshot documentSnapshot, @Nullable FirebaseFirestoreException e) {
+            public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
 
 
                 if (e != null){
-                    Toast.makeText(MainActivity.this, "Error while loading!", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                if (documentSnapshot.exists()){
-                    Note note= documentSnapshot.toObject(Note.class);
-                    String title= note.getTitle();
+
+                String data="";
+
+
+
+                for (QueryDocumentSnapshot documentSnapshot:queryDocumentSnapshots) {
+
+                    Note note=documentSnapshot.toObject(Note.class);
+
+
+                    note.setDocumentId(documentSnapshot.getId());
+
+
+
+                    String documentId = note.getDocumentId();
+                    String title=note.getTitle();
                     String description= note.getDescription();
 
-                    textViewData.setText("Title:" + title + "\n" + "Description:" + description);
+
+                    data += "ID:" +documentId +"\n Title:" + title + "\nDescription:" + description  + "\n\n";
 
 
 
                 }
 
-                //used when note is deleted
 
 
-
-
-                else {
-                    textViewData.setText("");
-                }
-
+                textViewData.setText(data);
             }
         });
     }
@@ -114,11 +124,9 @@ public class MainActivity extends AppCompatActivity {
 
         editTextTitle=(EditText)findViewById(R.id.edit_text_title);
         editTextDescription=(EditText)findViewById(R.id.edit_text_description);
-        sendDataButton=(Button)findViewById(R.id.sendDataBtn);
+        addDataBtn=(Button)findViewById(R.id.addDataBtn);
         loadNoteBtn=(Button)findViewById(R.id.loadNoteBtn);
-        updateDescBtn=(Button)findViewById(R.id.updateDescBtn);
-        deleteDescBtn=(Button)findViewById(R.id.deleteDescBtn);
-        deleteNoteBtn=(Button)findViewById(R.id.deleteNoteBtn);
+
         textViewData=(TextView)findViewById(R.id.text_view_data);
 
 
@@ -131,78 +139,26 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-        sendDataButton.setOnClickListener(new View.OnClickListener() {
+        addDataBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
-                String title= editTextTitle.getText().toString();
-                String description= editTextDescription.getText().toString();
+                String title = editTextTitle.getText().toString();
+                String description = editTextDescription.getText().toString();
 
                 //we need a container to safely move data to database
                 //for this we can use java map or java object
 
-           //commenting out map to use class as an update
+                //commenting out map to use class as an update
 
 
-                Note note=new Note(title,description);
+                Note note = new Note(title, description);
 
-           /*
-
-                Map<String,Object> note= new HashMap<>();
-
-                note.put(KEY_TITLE,title);
-                note.put(KEY_DESCRIPTION,description);
-
-
-                */
-
-                //reference to first collection
-
-                //changed                 db.collection("Notebook").document("My First Note").set(note)
-                noteRef.set(note)
-                        .addOnSuccessListener(new OnSuccessListener<Void>() {
-                            @Override
-                            public void onSuccess(Void aVoid) {
-                                Toast.makeText(MainActivity.this, "note saved", Toast.LENGTH_SHORT).show();
-
-                            }
-                        })
-                        .addOnFailureListener(new OnFailureListener() {
-                            @Override
-                            public void onFailure(@NonNull Exception e) {
-                                Toast.makeText(MainActivity.this, "error!", Toast.LENGTH_SHORT).show();
-
-                            }
-                        });
-
-
-            }
-
-
-
-        });
+           notebookRef.add(note);//can  add successlistener and failure listener
 
 
 
 
-
-
-
-        updateDescBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String description=editTextDescription.getText().toString();
-
-               /* ---- */
-                Map<String,Object> note = new HashMap<>();
-                note.put(KEY_DESCRIPTION,description);
-                noteRef.set(note, SetOptions.merge());
-                /* ----- */
-
-                /* or we can use just
-                noteRef.update(KEY_DESCRIPTION,description);
-                // if content already there ,it will get updated ,else nothing happens
-                 */
             }
         });
 
@@ -210,31 +166,6 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-
-        deleteDescBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Map<String,Object> note = new HashMap<>();
-                note.put(KEY_DESCRIPTION, FieldValue.delete());
-
-
-
-                noteRef.update(note);
-
-                //or use
-                //noteRef.update(KEY_DESCRIPTION,FieldValue.delete());
-                //can add onsuccesslistener or failurelistener
-            }
-        });
-
-
-
-        deleteNoteBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                noteRef.delete();
-            }
-        });
 
 
 
@@ -243,43 +174,36 @@ public class MainActivity extends AppCompatActivity {
         loadNoteBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                noteRef.get()
-                        .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                            @Override
-                            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                //document snapshot here contains all our data
+                notebookRef.get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+                    @Override
+                    public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+                        //query snapshot has multiple document snapshots
 
-                                if (documentSnapshot.exists()){
-                                /*    String title=documentSnapshot.getString(KEY_TITLE);
-                                    String description= documentSnapshot.getString(KEY_DESCRIPTION);
+                        String data ="";
 
-                                    */
+                        for (QueryDocumentSnapshot documentSnapshot:queryDocumentSnapshots){
+
+                            Note note=documentSnapshot.toObject(Note.class);
 
 
-                                Note note= documentSnapshot.toObject(Note.class);
-                                String title= note.getTitle();
-                                String description= note.getDescription();
-
-                                    //Map<String,Object> note=documentSnapshot.getData();
-                                    textViewData.setText("Title:" + title + "\n" + "Description:" + description);
+                            note.setDocumentId(documentSnapshot.getId());
 
 
 
-                                }else {
-                                    Toast.makeText(MainActivity.this, "Document does not exist", Toast.LENGTH_SHORT).show();
-                                }
+                            String documentId = note.getDocumentId();
+                            String title=note.getTitle();
+                            String description= note.getDescription();
+
+
+                            data += "ID:" +documentId +"\n Title:" + title + "\nDescription:" + description  + "\n\n";
 
 
 
-                            }
-                        })
-                        .addOnFailureListener(new OnFailureListener() {
-                            @Override
-                            public void onFailure(@NonNull Exception e) {
-                                Toast.makeText(MainActivity.this, "Error!", Toast.LENGTH_SHORT).show();
+                        }
+                        textViewData.setText(data);
 
-                            }
-                        });
+                    }
+                });
             }
         });
 
